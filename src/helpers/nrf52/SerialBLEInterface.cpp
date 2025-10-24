@@ -4,6 +4,10 @@ static SerialBLEInterface* instance;
 
 void SerialBLEInterface::onConnect(uint16_t connection_handle) {
   BLE_DEBUG_PRINTLN("SerialBLEInterface: connected");
+  if(instance){
+    instance->_pairing_start_time = millis();
+    instance->_pairing_in_progress = true;
+  }
   // we now set _isDeviceConnected=true in onSecured callback instead
 }
 
@@ -11,6 +15,7 @@ void SerialBLEInterface::onDisconnect(uint16_t connection_handle, uint8_t reason
   BLE_DEBUG_PRINTLN("SerialBLEInterface: disconnected reason=%d", reason);
   if(instance){
     instance->_isDeviceConnected = false;
+    instance->_pairing_in_progress = false;
     instance->startAdv();
   }
 }
@@ -19,6 +24,7 @@ void SerialBLEInterface::onSecured(uint16_t connection_handle) {
   BLE_DEBUG_PRINTLN("SerialBLEInterface: onSecured");
   if(instance){
     instance->_isDeviceConnected = true;
+    instance->_pairing_in_progress = false;
     // no need to stop advertising on connect, as the ble stack does this automatically
   }
 }
@@ -190,4 +196,18 @@ size_t SerialBLEInterface::checkRecvFrame(uint8_t dest[]) {
 
 bool SerialBLEInterface::isConnected() const {
   return _isDeviceConnected;
+}
+
+bool SerialBLEInterface::isPairingInProgress() const {
+  if (!_pairing_in_progress) return false;
+  
+  // Check if 60 seconds have passed since pairing started
+  unsigned long current_time = millis();
+  if (current_time - _pairing_start_time > 60000) {
+    // Timeout reached, pairing is no longer in progress
+    const_cast<SerialBLEInterface*>(this)->_pairing_in_progress = false;
+    return false;
+  }
+  
+  return true;
 }

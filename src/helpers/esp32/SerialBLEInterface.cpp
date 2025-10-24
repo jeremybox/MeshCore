@@ -60,6 +60,8 @@ bool SerialBLEInterface::onConfirmPIN(uint32_t pass_key) {
 
 bool SerialBLEInterface::onSecurityRequest() {
   BLE_DEBUG_PRINTLN("onSecurityRequest()");
+  _pairing_start_time = millis();
+  _pairing_in_progress = true;
   return true;  // allow
 }
 
@@ -74,6 +76,7 @@ void SerialBLEInterface::onAuthenticationComplete(esp_ble_auth_cmpl_t cmpl) {
     pServer->disconnect(pServer->getConnId());
     adv_restart_time = millis() + ADVERT_RESTART_DELAY;
   }
+  _pairing_in_progress = false;
 }
 
 // -------- BLEServerCallbacks methods
@@ -239,4 +242,18 @@ size_t SerialBLEInterface::checkRecvFrame(uint8_t dest[]) {
 
 bool SerialBLEInterface::isConnected() const {
   return deviceConnected;  //pServer != NULL && pServer->getConnectedCount() > 0;
+}
+
+bool SerialBLEInterface::isPairingInProgress() const {
+  if (!_pairing_in_progress) return false;
+  
+  // Check if 60 seconds have passed since pairing started
+  unsigned long current_time = millis();
+  if (current_time - _pairing_start_time > 60000) {
+    // Timeout reached, pairing is no longer in progress
+    const_cast<SerialBLEInterface*>(this)->_pairing_in_progress = false;
+    return false;
+  }
+  
+  return true;
 }

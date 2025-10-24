@@ -189,7 +189,12 @@ public:
         display.setColor(DisplayDriver::GREEN);
         display.setTextSize(1);
         display.drawTextCentered(display.width() / 2, 43, "< Connected >");
-      } else if (the_mesh.getBLEPin() != 0) { // BT pin
+      } else if (the_mesh.getBLEPin() != 0 && _task->isPairingInProgress()) { // BT pin during pairing
+        display.setColor(DisplayDriver::RED);
+        display.setTextSize(2);
+        sprintf(tmp, "Pin:%d", the_mesh.getBLEPin());
+        display.drawTextCentered(display.width() / 2, 43, tmp);
+      } else if (the_mesh.getBLEPin() != 0) { // BT pin when not connected
         display.setColor(DisplayDriver::RED);
         display.setTextSize(2);
         sprintf(tmp, "Pin:%d", the_mesh.getBLEPin());
@@ -485,6 +490,8 @@ void UITask::begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* no
 #endif
 
   _node_prefs = node_prefs;
+  _pairing_start_time = 0;
+  _pairing_in_progress = false;
   if (_display != NULL) {
     _display->turnOn();
   }
@@ -545,6 +552,19 @@ void UITask::msgRead(int msgcount) {
   _msgcount = msgcount;
   if (msgcount == 0) {
     gotoHomeScreen();
+  }
+}
+
+void UITask::onPairingStarted() {
+  _pairing_start_time = millis();
+  _pairing_in_progress = true;
+  
+  if (_display != NULL) {
+    if (!_display->isOn()) {
+      _display->turnOn();
+    }
+    _auto_off = millis() + AUTO_OFF_MILLIS;  // extend the auto-off timer
+    _next_refresh = 0;  // trigger refresh
   }
 }
 
@@ -676,6 +696,12 @@ void UITask::loop() {
   }
 
   userLedHandler();
+
+  // Check for pairing timeout
+  if (_pairing_in_progress && (millis() - _pairing_start_time) > 60000) {
+    _pairing_in_progress = false;
+    _next_refresh = 0;  // trigger refresh
+  }
 
 #ifdef PIN_BUZZER
   if (buzzer.isPlaying())  buzzer.loop();

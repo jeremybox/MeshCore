@@ -12,6 +12,8 @@ class SerialBLEInterface : public BaseSerialInterface {
   bool _isEnabled;
   bool _isDeviceConnected;
   unsigned long _last_write;
+  unsigned long _pairing_start_time;
+  bool _pairing_in_progress;
 
   struct Frame {
     uint8_t len;
@@ -33,6 +35,8 @@ public:
     _isDeviceConnected = false;
     _last_write = 0;
     send_queue_len = 0;
+    _pairing_start_time = 0;
+    _pairing_in_progress = false;
   }
 
   void startAdv();
@@ -49,6 +53,9 @@ public:
   bool isWriteBusy() const override;
   size_t writeFrame(const uint8_t src[], size_t len) override;
   size_t checkRecvFrame(uint8_t dest[]) override;
+  
+  // Pairing state methods
+  bool isPairingInProgress() const;
 };
 
 #if BLE_DEBUG_LOGGING && ARDUINO

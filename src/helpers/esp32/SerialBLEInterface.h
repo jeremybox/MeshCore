@@ -17,6 +17,8 @@ class SerialBLEInterface : public BaseSerialInterface, BLESecurityCallbacks, BLE
   uint32_t _pin_code;
   unsigned long _last_write;
   unsigned long adv_restart_time;
+  unsigned long _pairing_start_time;
+  bool _pairing_in_progress;
 
   struct Frame {
     uint8_t len;
@@ -59,6 +61,8 @@ public:
     _last_write = 0;
     last_conn_id = 0;
     send_queue_len = recv_queue_len = 0;
+    _pairing_start_time = 0;
+    _pairing_in_progress = false;
   }
 
   void begin(const char* device_name, uint32_t pin_code);
@@ -73,6 +77,9 @@ public:
   bool isWriteBusy() const override;
   size_t writeFrame(const uint8_t src[], size_t len) override;
   size_t checkRecvFrame(uint8_t dest[]) override;
+  
+  // Pairing state methods
+  bool isPairingInProgress() const;
 };
 
 #if BLE_DEBUG_LOGGING && ARDUINO

@@ -34,6 +34,8 @@ class UITask : public AbstractUITask {
   int _msgcount;
   unsigned long ui_started_at, next_batt_chck;
   int next_backlight_btn_check = 0;
+  unsigned long _pairing_start_time;
+  bool _pairing_in_progress;
 #ifdef PIN_STATUS_LED
   int led_state = 0;
   int next_led_change = 0;
@@ -72,12 +74,14 @@ public:
 
   void toggleBuzzer();
   void toggleGPS();
+  bool isPairingInProgress() const { return _pairing_in_progress; }
 
 
   // from AbstractUITask
   void msgRead(int msgcount) override;
   void newMsg(uint8_t path_len, const char* from_name, const char* text, int msgcount) override;
   void notify(UIEventType t = UIEventType::none) override;
+  void onPairingStarted() override;
   void loop() override;
 
   void shutdown(bool restart = false);

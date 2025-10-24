@@ -30,6 +30,8 @@ class UITask : public AbstractUITask {
   bool _need_refresh = true;
   bool _displayWasOn = false;  // Track display state before button press
   unsigned long ui_started_at;
+  unsigned long _pairing_start_time;
+  bool _pairing_in_progress;
 
   // Button handlers
 #ifdef PIN_USER_BTN
@@ -67,6 +69,7 @@ public:
   void msgRead(int msgcount) override;
   void newMsg(uint8_t path_len, const char* from_name, const char* text, int msgcount) override;
   void notify(UIEventType t = UIEventType::none) override;
+  void onPairingStarted() override;
   void loop() override;
 
   void shutdown(bool restart = false);

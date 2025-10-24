@@ -39,6 +39,8 @@ void UITask::begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* no
   _auto_off = millis() + AUTO_OFF_MILLIS;
   clearMsgPreview();
   _node_prefs = node_prefs;
+  _pairing_start_time = 0;
+  _pairing_in_progress = false;
   if (_display != NULL) {
     _display->turnOn();
   }
@@ -123,6 +125,19 @@ void UITask::clearMsgPreview() {
   _origin[0] = 0;
   _msg[0] = 0;
   _need_refresh = true;
+}
+
+void UITask::onPairingStarted() {
+  _pairing_start_time = millis();
+  _pairing_in_progress = true;
+  
+  if (_display != NULL) {
+    if (!_display->isOn()) {
+      _display->turnOn();
+    }
+    _auto_off = millis() + AUTO_OFF_MILLIS;  // extend the auto-off timer
+    _need_refresh = true;
+  }
 }
 
 void UITask::newMsg(uint8_t path_len, const char* from_name, const char* text, int msgcount) {
@@ -235,7 +250,7 @@ void UITask::renderCurrScreen() {
     _display->print(tmp);
 
     // BT pin
-    if (!_connected && the_mesh.getBLEPin() != 0) {
+    if ((!_connected && the_mesh.getBLEPin() != 0) || _pairing_in_progress) {
       _display->setColor(DisplayDriver::RED);
       _display->setTextSize(2);
       _display->setCursor(0, 43);
@@ -310,6 +325,12 @@ void UITask::loop() {
     }
   #endif
   userLedHandler();
+
+  // Check for pairing timeout
+  if (_pairing_in_progress && (millis() - _pairing_start_time) > 60000) {
+    _pairing_in_progress = false;
+    _need_refresh = true;
+  }
 
 #ifdef PIN_BUZZER
   if (buzzer.isPlaying())  buzzer.loop();

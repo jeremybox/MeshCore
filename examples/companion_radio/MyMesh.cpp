@@ -1712,7 +1712,17 @@ void MyMesh::loop() {
   }
 
 #ifdef DISPLAY_CLASS
-  if (_ui) _ui->setHasConnection(_serial->isConnected());
+  if (_ui) {
+    _ui->setHasConnection(_serial->isConnected());
+    
+    // Check for pairing status changes
+    static bool last_pairing_state = false;
+    bool current_pairing_state = _serial->isPairingInProgress();
+    if (current_pairing_state && !last_pairing_state) {
+      _ui->onPairingStarted();
+    }
+    last_pairing_state = current_pairing_state;
+  }
 #endif
 }
 
